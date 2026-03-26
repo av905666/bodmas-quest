@@ -6,7 +6,7 @@
 
 ## 🌐 Live Demo
 
-**[▶ Play Now →](https://YOUR-USERNAME.github.io/bodmas-quest/bodmas_game.html)**
+**[▶ Play Now →](https://bodmas-quest.netlify.app/)**
 
 ---
 
