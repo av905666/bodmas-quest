@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BODMAS Quest – Order of Operations Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0c29;
+    --bg2: #1a1545;
+    --card: #1e1b4b;
+    --accent: #f59e0b;
+    --accent2: #10b981;
+    --danger: #ef4444;
+    --purple: #8b5cf6;
+    --blue: #3b82f6;
+    --pink: #ec4899;
+    --cyan: #06b6d4;
+    --text: #f0e6ff;
+    --muted: #a78bfa;
+
+    /* BODMAS colors */
+    --b-color: #ef4444;   /* Brackets */
+    --o-color: #f97316;   /* Orders */
+    --d-color: #eab308;   /* Division */
+    --m-color: #22c55e;   /* Multiplication */
+    --a-color: #3b82f6;   /* Addition */
+    --s-color: #8b5cf6;   /* Subtraction */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Starfield background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 50%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(2px 2px at 20% 40%, rgba(167,139,250,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 70% 80%, rgba(59,130,246,0.3) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 24px 0 12px;
+  }
+
+  .logo {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(245,158,11,0.4));
+    letter-spacing: 2px;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* BODMAS reference bar */
+  .bodmas-bar {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+
+  .bodmas-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    border: 2px solid;
+    cursor: default;
+    transition: transform 0.2s;
+    position: relative;
+  }
+  .bodmas-badge:hover { transform: scale(1.08); }
+  .bodmas-badge[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e1b4b;
+    border: 1px solid #4c1d95;
+    color: #e9d5ff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .badge-b { color: var(--b-color); border-color: var(--b-color); background: rgba(239,68,68,0.1); }
+  .badge-o { color: var(--o-color); border-color: var(--o-color); background: rgba(249,115,22,0.1); }
+  .badge-d { color: var(--d-color); border-color: var(--d-color); background: rgba(234,179,8,0.1); }
+  .badge-m { color: var(--m-color); border-color: var(--m-color); background: rgba(34,197,94,0.1); }
+  .badge-a { color: var(--a-color); border-color: var(--a-color); background: rgba(59,130,246,0.1); }
+  .badge-s { color: var(--s-color); border-color: var(--s-color); background: rgba(139,92,246,0.1); }
+
+  /* Score/Level row */
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 16px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .stat-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .lives-display { display: flex; gap: 4px; justify-content: center; }
+  .heart { font-size: 1.2rem; transition: transform 0.3s; }
+  .heart.lost { opacity: 0.25; transform: scale(0.8); }
+
+  /* Main game card */
+  .game-card {
+    background: var(--card);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .game-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Expression display */
+  .expression-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .expression-box {
+    background: rgba(0,0,0,0.3);
+    border: 2px solid rgba(139,92,246,0.3);
+    border-radius: 16px;
+    padding: 18px 24px;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    text-align: center;
+    letter-spacing: 4px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  /* Highlighted steps in expression */
+  .expr-part { display: inline-block; }
+  .highlight-b { color: var(--b-color); }
+  .highlight-o { color: var(--o-color); }
+  .highlight-dm { color: var(--d-color); }
+  .highlight-as { color: var(--a-color); }
+
+  /* Step-by-step solver */
+  .solve-steps {
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 20px;
+    min-height: 60px;
+  }
+  .solve-steps-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .step-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    animation: stepIn 0.4s ease;
+  }
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .step-badge {
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .step-expr {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #e2e8f0;
+  }
+
+  /* --- GAME MODES --- */
+
+  /* MODE 1: Drag the operator bus */
+  .section-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .emoji { font-size: 1.2rem; }
+
+  /* Operator queue (bus-jam style) */
+  .operator-queue {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .op-token {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    cursor: grab;
+    user-select: none;
+    border: 3px solid;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .op-token:hover { transform: scale(1.1) rotate(-3deg); }
+  .op-token:active { cursor: grabbing; transform: scale(1.05); }
+  .op-token.dragging { opacity: 0.4; }
+  .op-token.placed { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+
+  .op-token.type-b { background: rgba(239,68,68,0.15); border-color: var(--b-color); color: var(--b-color); box-shadow: 0 4px 16px rgba(239,68,68,0.2); }
+  .op-token.type-o { background: rgba(249,115,22,0.15); border-color: var(--o-color); color: var(--o-color); box-shadow: 0 4px 16px rgba(249,115,22,0.2); }
+  .op-token.type-dm { background: rgba(234,179,8,0.15); border-color: var(--d-color); color: var(--d-color); box-shadow: 0 4px 16px rgba(234,179,8,0.2); }
+  .op-token.type-as { background: rgba(59,130,246,0.15); border-color: var(--a-color); color: var(--a-color); box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
+
+  /* Answer slots */
+  .answer-slots {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .answer-slot {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    border: 3px dashed rgba(139,92,246,0.4);
+    background: rgba(139,92,246,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.7rem;
+    color: var(--muted);
+    transition: all 0.2s;
+    position: relative;
+    cursor: default;
+  }
+  .answer-slot.drag-over {
+    border-color: var(--accent);
+    background: rgba(245,158,11,0.1);
+    transform: scale(1.05);
+  }
+  .answer-slot.filled {
+    border-style: solid;
+    cursor: pointer;
+  }
+  .answer-slot .slot-num {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg2);
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Nunito', sans-serif;
+    white-space: nowrap;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    color: white;
+    box-shadow: 0 6px 20px rgba(139,92,246,0.4);
+  }
+  .btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+  }
+  .btn-warning {
+    background: linear-gradient(135deg, var(--accent), #d97706);
+    color: #1a1200;
+    box-shadow: 0 6px 20px rgba(245,158,11,0.4);
+  }
+  .btn-ghost {
+    background: rgba(255,255,255,0.08);
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Feedback toast */
+  #feedback {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--card);
+    border: 2px solid var(--accent2);
+    padding: 14px 28px;
+    border-radius: 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: var(--accent2);
+    z-index: 1000;
+    transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+  #feedback.show { transform: translateX(-50%) translateY(0); }
+  #feedback.error { border-color: var(--danger); color: var(--danger); }
+  #feedback.warning { border-color: var(--accent); color: var(--accent); }
+
+  /* Mode selector tabs */
+  .mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: rgba(0,0,0,0.2);
+    padding: 6px;
+    border-radius: 14px;
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .mode-tab.active {
+    background: var(--purple);
+    color: white;
+    box-shadow: 0 4px 12px rgba(139,92,246,0.4);
+  }
+
+  /* Screen overlays */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,12,41,0.92);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(6px);
+  }
+  .overlay-card {
+    background: var(--card);
+    border: 2px solid rgba(139,92,246,0.4);
+    border-radius: 28px;
+    padding: 40px;
+    text-align: center;
+    max-width: 440px;
+    width: 100%;
+    animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+  }
+  @keyframes popIn {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .overlay-emoji { font-size: 3.5rem; margin-bottom: 12px; }
+  .overlay-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #f59e0b, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .overlay-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; line-height: 1.6; }
+
+  /* Progress bar */
+  .progress-bar {
+    background: rgba(0,0,0,0.3);
+    border-radius: 20px;
+    height: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--pink));
+    border-radius: 20px;
+    transition: width 0.5s ease;
+  }
+
+  /* MCQ buttons */
+  .mcq-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .mcq-btn {
+    padding: 14px;
+    border-radius: 14px;
+    border: 2px solid rgba(139,92,246,0.25);
+    background: rgba(139,92,246,0.08);
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .mcq-btn:hover { border-color: var(--purple); background: rgba(139,92,246,0.2); transform: scale(1.03); }
+  .mcq-btn.correct { border-color: var(--accent2); background: rgba(16,185,129,0.2); color: var(--accent2); }
+  .mcq-btn.wrong { border-color: var(--danger); background: rgba(239,68,68,0.2); color: var(--danger); }
+  .mcq-btn:disabled { cursor: default; }
+
+  /* Flash card mode */
+  .flashcard {
+    background: rgba(0,0,0,0.25);
+    border: 2px solid rgba(139,92,246,0.2);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .flashcard-expr {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    letter-spacing: 4px;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+
+  /* Visual step boxes */
+  .visual-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .visual-step-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.2);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .visual-step-row:hover { border-color: rgba(139,92,246,0.4); transform: translateX(4px); }
+  .visual-step-row.selected { border-color: var(--purple); background: rgba(139,92,246,0.12); }
+  .visual-step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .visual-step-text {
+    font-size: 0.9rem;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .visual-step-op {
+    margin-left: auto;
+    padding: 4px 12px;
+    border-radius: 10px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.75rem;
+  }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    animation: confettiFall linear forwards;
+    pointer-events: none;
+    z-index: 2000;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Difficulty stars */
+  .diff-stars { color: var(--accent); font-size: 0.9rem; }
+
+  /* Bus visual for mode 1 */
+  .bus-container {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .bus-stop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .bus-stop-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .bus-stop-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    background: rgba(0,0,0,0.3);
+  }
+  .bus-road {
+    width: 30px;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+  .bus-arrow {
+    color: rgba(255,255,255,0.3);
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* Explanation box */
+  .explain-box {
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 14px;
+    padding: 14px;
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: #a7f3d0;
+    line-height: 1.6;
+    display: none;
+  }
+  .explain-box.show { display: block; animation: stepIn 0.3s ease; }
+  .explain-box strong { color: var(--accent2); }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .game-card { padding: 18px; }
+    .op-token, .answer-slot { width: 54px; height: 54px; }
+    .mcq-options { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="feedback">✓ Correct!</div>
+
+<!-- Start Screen -->
+<div class="overlay" id="startScreen">
+  <div class="overlay-card">
+    <div class="overlay-emoji">🚀</div>
+    <div class="overlay-title">BODMAS Quest</div>
+    <div class="overlay-sub">
+      Master the <strong style="color:var(--accent)">Order of Operations</strong> through fun puzzles!<br><br>
+      <span style="color:var(--b-color)"><b>B</b>rackets</span> →
+      <span style="color:var(--o-color)"><b>O</b>rders</span> →
+      <span style="color:var(--d-color)"><b>D</b>ivision</span> →
+      <span style="color:var(--m-color)"><b>M</b>ultiplication</span> →
+      <span style="color:var(--a-color)"><b>A</b>ddition</span> →
+      <span style="color:var(--s-color)"><b>S</b>ubtraction</span>
+    </div>
+    <button class="btn btn-primary" style="width:100%; justify-content:center; font-size:1.1rem; padding:16px;" onclick="startGame()">
+      ▶ Start Playing
+    </button>
+  </div>
+</div>
+
+<!-- Game Over Screen -->
+<div class="overlay" id="gameOverScreen" style="display:none;">
+  <div class="overlay-card">
+    <div class="overlay-emoji">💫</div>
+    <div class="overlay-title" id="goTitle">Game Over!</div>
+    <div class="overlay-sub" id="goSub">You completed the quest!</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="restartGame()">🔄 Play Again</button>
+      <button class="btn btn-warning" style="flex:1; justify-content:center;" onclick="showLeaderboard()">🏆 Score</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <div class="logo">BODMAS Quest</div>
+    <div class="tagline">Order of Operations · Visual Learning</div>
+  </header>
+
+  <!-- BODMAS reference -->
+  <div class="bodmas-bar">
+    <div class="bodmas-badge badge-b" data-tip="Solve ( ) first">B · Brackets</div>
+    <div class="bodmas-badge badge-o" data-tip="Powers & Roots">O · Orders</div>
+    <div class="bodmas-badge badge-d" data-tip="Left to Right">D · Division</div>
+    <div class="bodmas-badge badge-m" data-tip="Left to Right">M · Multiply</div>
+    <div class="bodmas-badge badge-a" data-tip="Left to Right">A · Addition</div>
+    <div class="bodmas-badge badge-s" data-tip="Last priority">S · Subtract</div>
+  </div>
+
+  <!-- Status row -->
+  <div class="status-row">
+    <div class="stat-item">
+      <div class="stat-label">Level</div>
+      <div class="stat-value" id="levelDisplay">1</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Score</div>
+      <div class="stat-value" id="scoreDisplay">0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Question</div>
+      <div class="stat-value"><span id="qNum">1</span><span style="font-size:0.7rem;color:var(--muted)">/<span id="qTotal">5</span></span></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Lives</div>
+      <div class="lives-display" id="livesDisplay">
+        <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Progress</div>
+      <div class="stat-value" id="diffDisplay"><span class="diff-stars">⭐</span></div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="switchMode('arrange')" id="tab-arrange">🚌 Arrange Steps</button>
+    <button class="mode-tab" onclick="switchMode('mcq')" id="tab-mcq">🎯 What's Next?</button>
+    <button class="mode-tab" onclick="switchMode('evaluate')" id="tab-evaluate">🔢 Calculate</button>
+  </div>
+
+  <!-- GAME CARD -->
+  <div class="game-card" id="gameCard">
+
+    <!-- Expression -->
+    <div class="expression-label">📐 Solve this expression</div>
+    <div class="expression-box" id="expressionBox">2 + 3 × 4</div>
+
+    <!-- Game area (changes per mode) -->
+    <div id="gameArea"></div>
+
+    <!-- Step-by-step reveal -->
+    <div class="solve-steps" id="solveSteps" style="display:none;">
+      <div class="solve-steps-label">📖 Solution Walkthrough</div>
+      <div id="stepLines"></div>
+    </div>
+
+    <!-- Explanation -->
+    <div class="explain-box" id="explainBox"></div>
+
+    <!-- Buttons -->
+    <div class="btn-row" id="btnRow">
+      <button class="btn btn-success" id="checkBtn" onclick="checkAnswer()">✓ Check Answer</button>
+      <button class="btn btn-ghost" id="hintBtn" onclick="showHint()">💡 Hint</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" style="display:none;">Next →</button>
+      <button class="btn btn-ghost" id="skipBtn" onclick="skipQuestion()">Skip</button>
+    </div>
+  </div>
+
+  <!-- BODMAS teaching panel -->
+  <div class="game-card" id="teachPanel">
+    <div class="section-title"><span class="emoji">📚</span> BODMAS in Action — Bus Route Analogy</div>
+    <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px; line-height:1.6;">
+      Think of BODMAS like bus stops — passengers (operations) must board in strict order.
+      Each stop must be <strong style="color:var(--accent)">cleared before the bus moves on!</strong>
+    </p>
+    <div class="bus-container" id="busRoute"></div>
+    <div style="font-size:0.8rem; color:var(--muted); text-align:center; margin-top:8px;">
+      ← Operations are solved from left to right within each priority tier →
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// GAME DATA
+// ============================================================
+const QUESTIONS = [
+  // Level 1 – Basic
+  {
+    level: 1,
+    expr: "2 + 3 × 4",
+    answer: 14,
+    steps: [
+      { op: "M", label: "Multiply", desc: "3 × 4 = 12", intermediate: "2 + 12" },
+      { op: "A", label: "Addition", desc: "2 + 12 = 14", intermediate: "14" }
+    ],
+    wrongAnswers: [20, 10, 9],
+    hint: "Multiplication comes BEFORE addition in BODMAS!",
+    explanation: "We solve <strong>3 × 4 = 12</strong> first (M before A), then <strong>2 + 12 = 14</strong>."
+  },
+  {
+    level: 1,
+    expr: "10 - 2 × 3",
+    answer: 4,
+    steps: [
+      { op: "M", label: "Multiply", desc: "2 × 3 = 6", intermediate: "10 - 6" },
+      { op: "S", label: "Subtract", desc: "10 - 6 = 4", intermediate: "4" }
+    ],
+    wrongAnswers: [24, 18, 1],
+    hint: "Do multiplication before subtraction!",
+    explanation: "First <strong>2 × 3 = 6</strong> (Multiplication), then <strong>10 - 6 = 4</strong> (Subtraction)."
+  },
+  {
+    level: 1,
+    expr: "(5 + 3) × 2",
+    answer: 16,
+    steps: [
+      { op: "B", label: "Brackets", desc: "5 + 3 = 8", intermediate: "8 × 2" },
+      { op: "M", label: "Multiply", desc: "8 × 2 = 16", intermediate: "16" }
+    ],
+    wrongAnswers: [11, 10, 13],
+    hint: "Brackets are solved FIRST — always!",
+    explanation: "Brackets first: <strong>(5+3) = 8</strong>, then <strong>8 × 2 = 16</strong>."
+  },
+  // Level 2
+  {
+    level: 2,
+    expr: "6 ÷ 2 + 3 × 4",
+    answer: 15,
+    steps: [
+      { op: "DM", label: "Divide", desc: "6 ÷ 2 = 3", intermediate: "3 + 3 × 4" },
+      { op: "DM", label: "Multiply", desc: "3 × 4 = 12", intermediate: "3 + 12" },
+      { op: "AS", label: "Addition", desc: "3 + 12 = 15", intermediate: "15" }
+    ],
+    wrongAnswers: [12, 60, 9],
+    hint: "Division and Multiplication have the SAME priority — go left to right!",
+    explanation: "Division & Multiply left-to-right: <strong>6÷2=3</strong>, then <strong>3×4=12</strong>, then <strong>3+12=15</strong>."
+  },
+  {
+    level: 2,
+    expr: "2² + 3 × 4",
+    answer: 16,
+    steps: [
+      { op: "O", label: "Orders", desc: "2² = 4", intermediate: "4 + 3 × 4" },
+      { op: "M", label: "Multiply", desc: "3 × 4 = 12", intermediate: "4 + 12" },
+      { op: "A", label: "Addition", desc: "4 + 12 = 16", intermediate: "16" }
+    ],
+    wrongAnswers: [52, 28, 20],
+    hint: "Orders (powers/roots) come AFTER brackets but BEFORE × and ÷",
+    explanation: "Orders first: <strong>2²=4</strong>, then Multiply: <strong>3×4=12</strong>, then Add: <strong>4+12=16</strong>."
+  },
+  {
+    level: 2,
+    expr: "20 ÷ (2 + 3)",
+    answer: 4,
+    steps: [
+      { op: "B", label: "Brackets", desc: "2 + 3 = 5", intermediate: "20 ÷ 5" },
+      { op: "D", label: "Divide", desc: "20 ÷ 5 = 4", intermediate: "4" }
+    ],
+    wrongAnswers: [13, 22, 10],
+    hint: "Brackets change everything — solve inside first!",
+    explanation: "Brackets: <strong>(2+3)=5</strong>, then <strong>20÷5=4</strong>."
+  },
+  // Level 3
+  {
+    level: 3,
+    expr: "(3 + 2)² - 6 ÷ 2",
+    answer: 22,
+    steps: [
+      { op: "B", label: "Brackets", desc: "3 + 2 = 5", intermediate: "5² - 6 ÷ 2" },
+      { op: "O", label: "Orders", desc: "5² = 25", intermediate: "25 - 6 ÷ 2" },
+      { op: "D", label: "Divide", desc: "6 ÷ 2 = 3", intermediate: "25 - 3" },
+      { op: "S", label: "Subtract", desc: "25 - 3 = 22", intermediate: "22" }
+    ],
+    wrongAnswers: [46, 14, 12],
+    hint: "Follow B → O → D → M → A → S strictly!",
+    explanation: "B: <strong>(3+2)=5</strong>, O: <strong>5²=25</strong>, D: <strong>6÷2=3</strong>, S: <strong>25-3=22</strong>."
+  },
+  {
+    level: 3,
+    expr: "3 × (2 + 4) ÷ 9",
+    answer: 2,
+    steps: [
+      { op: "B", label: "Brackets", desc: "2 + 4 = 6", intermediate: "3 × 6 ÷ 9" },
+      { op: "DM", label: "Multiply", desc: "3 × 6 = 18", intermediate: "18 ÷ 9" },
+      { op: "DM", label: "Divide", desc: "18 ÷ 9 = 2", intermediate: "2" }
+    ],
+    wrongAnswers: [18, 6, 3],
+    hint: "After brackets, × and ÷ are done LEFT to RIGHT",
+    explanation: "B: <strong>(2+4)=6</strong>, then left-to-right: <strong>3×6=18</strong>, <strong>18÷9=2</strong>."
+  },
+  {
+    level: 3,
+    expr: "5 + 3 × 2 - 8 ÷ 4",
+    answer: 9,
+    steps: [
+      { op: "DM", label: "Multiply", desc: "3 × 2 = 6", intermediate: "5 + 6 - 8 ÷ 4" },
+      { op: "DM", label: "Divide", desc: "8 ÷ 4 = 2", intermediate: "5 + 6 - 2" },
+      { op: "AS", label: "Add/Sub", desc: "5 + 6 - 2 = 9", intermediate: "9" }
+    ],
+    wrongAnswers: [3, 14, 5],
+    hint: "There are TWO × / ÷ operations — do both before + and -",
+    explanation: "DM: <strong>3×2=6</strong> and <strong>8÷4=2</strong>, then AS left-to-right: <strong>5+6-2=9</strong>."
+  },
+  // Level 4 (Bonus)
+  {
+    level: 4,
+    expr: "2 × (3 + 4²) - 1",
+    answer: 37,
+    steps: [
+      { op: "B+O", label: "Brackets+Orders", desc: "4² = 16 inside brackets", intermediate: "2 × (3 + 16) - 1" },
+      { op: "B", label: "Brackets", desc: "3 + 16 = 19", intermediate: "2 × 19 - 1" },
+      { op: "M", label: "Multiply", desc: "2 × 19 = 38", intermediate: "38 - 1" },
+      { op: "S", label: "Subtract", desc: "38 - 1 = 37", intermediate: "37" }
+    ],
+    wrongAnswers: [55, 13, 47],
+    hint: "Inside brackets, BODMAS still applies — solve 4² first!",
+    explanation: "Inside brackets, Orders first: <strong>4²=16</strong>, then <strong>3+16=19</strong>, then <strong>2×19=38</strong>, then <strong>38-1=37</strong>."
+  }
+];
+
+const OP_COLORS = {
+  B: 'var(--b-color)', O: 'var(--o-color)',
+  D: 'var(--d-color)', M: 'var(--m-color)',
+  DM: 'var(--d-color)', 'B+O': 'var(--b-color)',
+  A: 'var(--a-color)', S: 'var(--s-color)', AS: 'var(--a-color)'
+};
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let state = {
+  currentQ: 0,
+  score: 0,
+  lives: 3,
+  mode: 'arrange',
+  userArrangement: [],
+  selectedMCQ: null,
+  evaluateInput: null,
+  hintUsed: false,
+  answered: false,
+  questionsOrder: []
+};
+
+// ============================================================
+// INIT
+// ============================================================
+function startGame() {
+  document.getElementById('startScreen').style.display = 'none';
+  state.questionsOrder = shuffleArray([...Array(QUESTIONS.length).keys()]).slice(0, 8);
+  state.currentQ = 0;
+  state.score = 0;
+  state.lives = 3;
+  updateStatus();
+  buildBusRoute();
+  loadQuestion();
+}
+
+function shuffleArray(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function loadQuestion() {
+  const q = currentQuestion();
+  state.answered = false;
+  state.hintUsed = false;
+  state.userArrangement = [];
+
+  document.getElementById('expressionBox').textContent = q.expr;
+  document.getElementById('solveSteps').style.display = 'none';
+  document.getElementById('explainBox').classList.remove('show');
+  document.getElementById('explainBox').innerHTML = '';
+  document.getElementById('stepLines').innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'none';
+  document.getElementById('checkBtn').style.display = '';
+  document.getElementById('hintBtn').style.display = '';
+  document.getElementById('skipBtn').style.display = '';
+
+  updateStatus();
+  renderMode();
+}
+
+function currentQuestion() {
+  return QUESTIONS[state.questionsOrder[state.currentQ]];
+}
+
+function updateStatus() {
+  const total = state.questionsOrder.length;
+  document.getElementById('levelDisplay').textContent = currentQuestion()?.level || 1;
+  document.getElementById('scoreDisplay').textContent = state.score;
+  document.getElementById('qNum').textContent = state.currentQ + 1;
+  document.getElementById('qTotal').textContent = total;
+  document.getElementById('progressFill').style.width = ((state.currentQ / total) * 100) + '%';
+
+  // Lives
+  const hearts = document.querySelectorAll('.heart');
+  hearts.forEach((h, i) => h.classList.toggle('lost', i >= state.lives));
+
+  // Difficulty stars
+  const lvl = currentQuestion()?.level || 1;
+  document.getElementById('diffDisplay').innerHTML = '⭐'.repeat(lvl);
+}
+
+// ============================================================
+// MODE SWITCHING
+// ============================================================
+function switchMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + mode).classList.add('active');
+  if (!state.answered) renderMode();
+}
+
+function renderMode() {
+  const area = document.getElementById('gameArea');
+  if (state.mode === 'arrange') renderArrangeMode(area);
+  else if (state.mode === 'mcq') renderMCQMode(area);
+  else renderEvaluateMode(area);
+}
+
+// ============================================================
+// MODE 1: ARRANGE STEPS (Bus-Jam style)
+// ============================================================
+function renderArrangeMode(area) {
+  const q = currentQuestion();
+
+  // Build token pool from steps
+  const tokens = q.steps.map((s, i) => ({
+    id: i,
+    op: s.op,
+    label: s.label,
+    desc: s.desc
+  }));
+
+  const shuffled = shuffleArray([...tokens]);
+  state.userArrangement = new Array(q.steps.length).fill(null);
+
+  let html = `
+    <div class="section-title"><span class="emoji">🚌</span> Drag operators in the correct BODMAS order</div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;">Which operation should be done <strong style="color:var(--accent)">first, second, third...</strong>?</p>
+    <div class="operator-queue" id="tokenPool">
+  `;
+
+  shuffled.forEach(tok => {
+    const cls = getTokenClass(tok.op);
+    html += `<div class="op-token ${cls}" id="tok-${tok.id}" draggable="true"
+      ondragstart="dragStart(event,'${tok.id}')"
+      onclick="tokenClick(${tok.id})">
+      ${tok.label.slice(0,3)}
+    </div>`;
+  });
+
+  html += `</div>
+    <div class="section-title" style="margin-top:4px;"><span class="emoji">📋</span> Drop here in order (Step 1 → first)</div>
+    <div class="answer-slots" id="answerSlots">
+  `;
+
+  q.steps.forEach((_, i) => {
+    html += `<div class="answer-slot" id="slot-${i}"
+      ondragover="dragOver(event)"
+      ondrop="dropOnSlot(event,${i})"
+      onclick="slotClick(${i})">
+      <span class="slot-num">Step ${i+1}</span>
+      <span style="font-size:0.65rem;">DROP<br>HERE</span>
+    </div>`;
+  });
+
+  html += `</div>`;
+  area.innerHTML = html;
+}
+
+function getTokenClass(op) {
+  if (op === 'B' || op === 'B+O') return 'type-b';
+  if (op === 'O') return 'type-o';
+  if (op === 'D' || op === 'M' || op === 'DM') return 'type-dm';
+  return 'type-as';
+}
+
+let draggedId = null;
+let lastClickedToken = null;
+
+function dragStart(e, id) {
+  draggedId = id;
+  setTimeout(() => document.getElementById('tok-' + id)?.classList.add('dragging'), 0);
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function dropOnSlot(e, slotIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  placeToken(draggedId, slotIdx);
+}
+
+function tokenClick(id) {
+  if (lastClickedToken === null) {
+    lastClickedToken = id;
+    document.getElementById('tok-' + id)?.style.setProperty('outline', '3px solid var(--accent)');
+  } else {
+    lastClickedToken = null;
+    document.querySelectorAll('.op-token').forEach(t => t.style.outline = '');
+  }
+}
+
+function slotClick(slotIdx) {
+  if (lastClickedToken !== null) {
+    placeToken(lastClickedToken, slotIdx);
+    lastClickedToken = null;
+    document.querySelectorAll('.op-token').forEach(t => t.style.outline = '');
+  } else {
+    // Remove from slot
+    if (state.userArrangement[slotIdx] !== null) {
+      const tokId = state.userArrangement[slotIdx];
+      state.userArrangement[slotIdx] = null;
+      const slot = document.getElementById('slot-' + slotIdx);
+      slot.innerHTML = `<span class="slot-num">Step ${slotIdx+1}</span><span style="font-size:0.65rem;">DROP<br>HERE</span>`;
+      slot.classList.remove('filled');
+      const tok = document.getElementById('tok-' + tokId);
+      if (tok) { tok.classList.remove('placed'); tok.style.opacity = ''; tok.style.pointerEvents = ''; }
+    }
+  }
+}
+
+function placeToken(tokId, slotIdx) {
+  const q = currentQuestion();
+  if (state.userArrangement[slotIdx] !== null) return; // slot taken
+
+  const tok = q.steps.find((_, i) => i == tokId);
+  if (!tok) return;
+
+  // Check not already placed
+  if (state.userArrangement.includes(parseInt(tokId)) || state.userArrangement.includes(tokId)) return;
+
+  state.userArrangement[slotIdx] = tokId;
+
+  const slot = document.getElementById('slot-' + slotIdx);
+  const cls = getTokenClass(q.steps[tokId].op);
+  slot.innerHTML = `<span class="slot-num">Step ${slotIdx+1}</span>
+    <div class="op-token ${cls}" style="width:48px;height:48px;font-size:1rem;border:2px solid;margin:0;cursor:pointer;" onclick="slotClick(${slotIdx})">
+      ${q.steps[tokId].label.slice(0,3)}
+    </div>`;
+  slot.classList.add('filled');
+
+  const tokEl = document.getElementById('tok-' + tokId);
+  if (tokEl) tokEl.classList.add('placed');
+}
+
+// ============================================================
+// MODE 2: MCQ – "What operation should be done NEXT?"
+// ============================================================
+function renderMCQMode(area) {
+  const q = currentQuestion();
+
+  // Show partial solving – reveal first N-1 steps
+  const stepIdx = 0; // ask about step 1
+
+  const options = buildMCQOptions(q, stepIdx);
+
+  let html = `
+    <div class="section-title"><span class="emoji">🎯</span> Which operation should be solved FIRST?</div>
+    <div class="flashcard">
+      <div class="flashcard-expr">${q.expr}</div>
+      <div style="font-size:0.8rem;color:var(--muted);">Choose the first operation to apply:</div>
+    </div>
+    <div class="mcq-options" id="mcqOptions">
+  `;
+
+  options.forEach(opt => {
+    html += `<button class="mcq-btn" onclick="selectMCQ(this,'${opt.op}','${opt.label}')"
+      style="border-color: ${OP_COLORS[opt.op] || 'rgba(139,92,246,0.25)'}20;">
+      <span style="display:block;font-size:0.7rem;color:var(--muted);font-family:'Nunito',sans-serif;margin-bottom:4px;">
+        ${getBodmasLetter(opt.op)} · ${opt.letter}
+      </span>
+      ${opt.label}
+    </button>`;
+  });
+
+  html += `</div>`;
+  area.innerHTML = html;
+  state.selectedMCQ = null;
+}
+
+function getBodmasLetter(op) {
+  if (op === 'B' || op === 'B+O') return 'B';
+  if (op === 'O') return 'O';
+  if (op === 'D' || op === 'DM') return 'D/M';
+  if (op === 'M') return 'M';
+  if (op === 'A' || op === 'AS') return 'A/S';
+  if (op === 'S') return 'S';
+  return '?';
+}
+
+function buildMCQOptions(q, stepIdx) {
+  const correctOp = q.steps[stepIdx].op;
+  const correctLabel = q.steps[stepIdx].label;
+
+  const allOps = [
+    { op: 'B', label: 'Brackets', letter: 'Brackets first' },
+    { op: 'O', label: 'Orders (Power)', letter: 'Powers/Roots' },
+    { op: 'DM', label: 'Divide / Multiply', letter: 'Left to right' },
+    { op: 'AS', label: 'Add / Subtract', letter: 'Left to right' }
+  ];
+
+  // correct answer
+  const correct = allOps.find(o =>
+    o.op === correctOp ||
+    (correctOp === 'D' && o.op === 'DM') ||
+    (correctOp === 'M' && o.op === 'DM') ||
+    (correctOp === 'A' && o.op === 'AS') ||
+    (correctOp === 'S' && o.op === 'AS') ||
+    ('B+O' === correctOp && o.op === 'B')
+  ) || { op: correctOp, label: correctLabel, letter: correctLabel };
+
+  const others = allOps.filter(o => o.op !== correct.op).sort(() => Math.random() - 0.5).slice(0, 3);
+  return shuffleArray([correct, ...others]);
+}
+
+function selectMCQ(btn, op, label) {
+  if (state.selectedMCQ !== null) return;
+  state.selectedMCQ = { op, label };
+  document.querySelectorAll('.mcq-btn').forEach(b => { b.disabled = true; });
+  btn.style.borderColor = 'var(--purple)';
+  btn.style.background = 'rgba(139,92,246,0.2)';
+}
+
+// ============================================================
+// MODE 3: EVALUATE – Type the answer
+// ============================================================
+function renderEvaluateMode(area) {
+  const q = currentQuestion();
+
+  let html = `
+    <div class="section-title"><span class="emoji">🔢</span> Calculate the final answer</div>
+    <div class="flashcard">
+      <div class="flashcard-expr">${q.expr}</div>
+      <div style="font-size:0.8rem;color:var(--muted);">Apply BODMAS carefully and enter your answer:</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="number" id="evalInput"
+        style="background:rgba(0,0,0,0.3);border:2px solid rgba(139,92,246,0.4);border-radius:12px;
+        padding:14px 20px;font-family:'Fredoka One',cursive;font-size:1.4rem;color:#fff;
+        width:160px;text-align:center;outline:none;letter-spacing:2px;"
+        placeholder="?"
+        onkeydown="if(event.key==='Enter') checkAnswer()"
+        oninput="state.evaluateInput=this.value">
+      <span style="color:var(--muted);font-size:0.85rem;">← Type your answer & press Check</span>
+    </div>
+    <!-- Number pad for mobile -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;max-width:240px;">
+  `;
+
+  const nums = [1,2,3,4,5,6,7,8,9,0,'-','⌫'];
+  nums.forEach(n => {
+    html += `<button onclick="numPad('${n}')"
+      style="width:48px;height:40px;border-radius:10px;border:1px solid rgba(139,92,246,0.3);
+      background:rgba(139,92,246,0.1);color:var(--text);cursor:pointer;font-family:'Fredoka One',cursive;
+      font-size:1rem;transition:all 0.15s;" onmouseover="this.style.background='rgba(139,92,246,0.25)'"
+      onmouseout="this.style.background='rgba(139,92,246,0.1)'">${n}</button>`;
+  });
+
+  html += `</div>`;
+  area.innerHTML = html;
+}
+
+function numPad(val) {
+  const inp = document.getElementById('evalInput');
+  if (!inp) return;
+  if (val === '⌫') inp.value = inp.value.slice(0, -1);
+  else if (val === '-') inp.value = inp.value.startsWith('-') ? inp.value.slice(1) : '-' + inp.value;
+  else inp.value += val;
+  state.evaluateInput = inp.value;
+}
+
+// ============================================================
+// CHECK ANSWER
+// ============================================================
+function checkAnswer() {
+  if (state.answered) return;
+  const q = currentQuestion();
+  let correct = false;
+
+  if (state.mode === 'arrange') {
+    correct = checkArrange(q);
+  } else if (state.mode === 'mcq') {
+    correct = checkMCQ(q);
+  } else {
+    correct = checkEvaluate(q);
+  }
+
+  state.answered = true;
+  document.getElementById('checkBtn').style.display = 'none';
+  document.getElementById('hintBtn').style.display = 'none';
+  document.getElementById('skipBtn').style.display = 'none';
+  document.getElementById('nextBtn').style.display = '';
+
+  if (correct) {
+    const pts = state.hintUsed ? 5 : 10;
+    state.score += pts * (q.level);
+    showFeedback(`🎉 Correct! +${pts * q.level} pts`, false);
+    confetti();
+  } else {
+    state.lives--;
+    showFeedback('❌ Not quite! Check the walkthrough below.', true);
+    if (state.lives <= 0) {
+      setTimeout(() => endGame(false), 1500);
+      return;
+    }
+  }
+
+  showSolution(q);
+  updateStatus();
+}
+
+function checkArrange(q) {
+  // All slots filled?
+  if (state.userArrangement.some(v => v === null)) {
+    showFeedback('⚠️ Fill all steps first!', false, true);
+    state.answered = false;
+    return false;
+  }
+  // Check order matches
+  for (let i = 0; i < q.steps.length; i++) {
+    if (parseInt(state.userArrangement[i]) !== i) return false;
+  }
+  return true;
+}
+
+function checkMCQ(q) {
+  if (!state.selectedMCQ) {
+    showFeedback('⚠️ Please choose an option!', false, true);
+    state.answered = false;
+    return false;
+  }
+
+  const correctOp = q.steps[0].op;
+  const sel = state.selectedMCQ.op;
+
+  const correct = sel === correctOp ||
+    (correctOp === 'D' && sel === 'DM') ||
+    (correctOp === 'M' && sel === 'DM') ||
+    (correctOp === 'A' && sel === 'AS') ||
+    (correctOp === 'S' && sel === 'AS') ||
+    ('B+O' === correctOp && sel === 'B');
+
+  // Visual feedback on buttons
+  document.querySelectorAll('.mcq-btn').forEach(btn => {
+    const btnOp = btn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (btnOp === sel) {
+      btn.classList.add(correct ? 'correct' : 'wrong');
+    }
+    if (!correct) {
+      // highlight correct
+      if (btnOp === correctOp ||
+        (correctOp === 'D' && btnOp === 'DM') ||
+        (correctOp === 'M' && btnOp === 'DM')) {
+        btn.classList.add('correct');
+      }
+    }
+  });
+
+  return correct;
+}
+
+function checkEvaluate(q) {
+  const inp = document.getElementById('evalInput');
+  const val = parseInt(inp?.value);
+  const correct = val === q.answer;
+
+  if (inp) {
+    inp.style.borderColor = correct ? 'var(--accent2)' : 'var(--danger)';
+    inp.style.color = correct ? 'var(--accent2)' : 'var(--danger)';
+  }
+  return correct;
+}
+
+// ============================================================
+// SHOW SOLUTION
+// ============================================================
+function showSolution(q) {
+  const box = document.getElementById('solveSteps');
+  const lines = document.getElementById('stepLines');
+  box.style.display = '';
+  lines.innerHTML = '';
+
+  q.steps.forEach((step, i) => {
+    setTimeout(() => {
+      const color = OP_COLORS[step.op] || '#8b5cf6';
+      const line = document.createElement('div');
+      line.className = 'step-line';
+      line.innerHTML = `
+        <span class="step-badge" style="background:${color}22;color:${color};border:1px solid ${color}44;">
+          ${step.op} · ${step.label}
+        </span>
+        <span class="step-expr">${step.desc} = <span style="color:${color}">${step.intermediate}</span></span>
+      `;
+      lines.appendChild(line);
+    }, i * 350);
+  });
+
+  // Show explanation
+  setTimeout(() => {
+    const eb = document.getElementById('explainBox');
+    eb.innerHTML = `💡 <strong>Explanation:</strong> ${q.explanation}`;
+    eb.classList.add('show');
+  }, q.steps.length * 350 + 200);
+}
+
+// ============================================================
+// NEXT / SKIP
+// ============================================================
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ >= state.questionsOrder.length) {
+    endGame(true);
+  } else {
+    loadQuestion();
+  }
+}
+
+function skipQuestion() {
+  state.lives = Math.max(0, state.lives - 0); // no penalty for skip, just move
+  nextQuestion();
+}
+
+// ============================================================
+// HINT
+// ============================================================
+function showHint() {
+  const q = currentQuestion();
+  state.hintUsed = true;
+  showFeedback(`💡 ${q.hint}`, false, true);
+}
+
+// ============================================================
+// END GAME
+// ============================================================
+function endGame(won) {
+  const screen = document.getElementById('gameOverScreen');
+  screen.style.display = 'flex';
+  document.getElementById('goTitle').textContent = won ? '🏆 Quest Complete!' : '💔 Game Over!';
+  document.getElementById('goSub').innerHTML = `
+    <strong style="font-size:1.3rem;color:var(--accent)">Score: ${state.score}</strong><br><br>
+    ${won ? 'Excellent! You mastered BODMAS!' : 'Practice makes perfect!'}<br>
+    You answered ${state.currentQ} / ${state.questionsOrder.length} questions.
+  `;
+  if (won) confetti();
+}
+
+function restartGame() {
+  document.getElementById('gameOverScreen').style.display = 'none';
+  state.currentQ = 0;
+  state.score = 0;
+  state.lives = 3;
+  state.questionsOrder = shuffleArray([...Array(QUESTIONS.length).keys()]).slice(0, 8);
+  updateStatus();
+  loadQuestion();
+}
+
+function showLeaderboard() {
+  document.getElementById('goSub').innerHTML = `
+    <strong style="color:var(--accent)">Your Score: ${state.score}</strong><br><br>
+    <table style="width:100%;text-align:left;font-size:0.85rem;color:var(--muted);">
+      <tr><td>⭐ 0-50</td><td>Beginner</td></tr>
+      <tr><td>⭐⭐ 50-100</td><td>Explorer</td></tr>
+      <tr><td>⭐⭐⭐ 100-200</td><td>Champion</td></tr>
+      <tr><td>⭐⭐⭐⭐ 200+</td><td style="color:var(--accent)">BODMAS Master!</td></tr>
+    </table>
+  `;
+}
+
+// ============================================================
+// FEEDBACK TOAST
+// ============================================================
+let feedbackTimer = null;
+function showFeedback(msg, isError, isWarning) {
+  const el = document.getElementById('feedback');
+  el.textContent = msg;
+  el.className = 'show' + (isError ? ' error' : isWarning ? ' warning' : '');
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => { el.className = ''; }, 2800);
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function confetti() {
+  const colors = ['#f59e0b','#ec4899','#8b5cf6','#10b981','#3b82f6','#ef4444'];
+  for (let i = 0; i < 50; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + 'vw';
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = (Math.random() * 10 + 5) + 'px';
+    piece.style.height = (Math.random() * 10 + 5) + 'px';
+    piece.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+    piece.style.animationDelay = Math.random() * 0.5 + 's';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 3000);
+  }
+}
+
+// ============================================================
+// BUS ROUTE TEACHING PANEL
+// ============================================================
+function buildBusRoute() {
+  const stops = [
+    { letter: 'B', name: 'Brackets', color: 'var(--b-color)' },
+    { letter: 'O', name: 'Orders', color: 'var(--o-color)' },
+    { letter: 'D', name: 'Division', color: 'var(--d-color)' },
+    { letter: 'M', name: 'Multiply', color: 'var(--m-color)' },
+    { letter: 'A', name: 'Addition', color: 'var(--a-color)' },
+    { letter: 'S', name: 'Subtract', color: 'var(--s-color)' }
+  ];
+
+  const container = document.getElementById('busRoute');
+  let html = '';
+  stops.forEach((s, i) => {
+    html += `<div class="bus-stop">
+      <div class="bus-stop-label">${s.name}</div>
+      <div class="bus-stop-circle" style="border-color:${s.color};color:${s.color};">
+        ${s.letter}
+      </div>
+    </div>`;
+    if (i < stops.length - 1) {
+      html += `<div class="bus-road"></div><div class="bus-arrow">▶</div><div class="bus-road"></div>`;
+    }
+  });
+
+  container.innerHTML = html;
+
+  // Animate a "bus" along the route
+  animateBus();
+}
+
+function animateBus() {
+  const stops = document.querySelectorAll('.bus-stop-circle');
+  let idx = 0;
+  setInterval(() => {
+    stops.forEach((s, i) => {
+      s.style.transform = i === idx ? 'scale(1.3)' : 'scale(1)';
+      s.style.boxShadow = i === idx ? `0 0 12px ${getComputedStyle(s).borderColor}` : 'none';
+    });
+    idx = (idx + 1) % stops.length;
+  }, 900);
+}
+
+// ============================================================
+// DRAG EVENTS cleanup
+// ============================================================
+document.addEventListener('dragend', () => {
+  document.querySelectorAll('.op-token').forEach(t => t.classList.remove('dragging'));
+  document.querySelectorAll('.answer-slot').forEach(s => s.classList.remove('drag-over'));
+});
+</script>
+</body>
+</html>
